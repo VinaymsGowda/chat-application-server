@@ -55,21 +55,25 @@ Chat.hasMany(ChatUsers, {
   foreignKey: "chatId",
   as: "chatUsers",
   foreignKeyConstraint: true,
+  onDelete: "CASCADE",
 });
 
 User.hasMany(ChatUsers, {
   foreignKey: "userId",
   as: "chatUsers",
+  onDelete: "CASCADE",
 });
 
 ChatUsers.belongsTo(Chat, {
   foreignKey: "chatId",
   as: "chats",
+  onDelete: "CASCADE",
 });
 
 ChatUsers.belongsTo(User, {
   foreignKey: "userId",
   as: "users",
+  onDelete: "CASCADE",
 });
 
 module.exports = ChatUsers;

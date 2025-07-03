@@ -40,14 +40,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("new-message", (chatId, newMessage) => {
-    console.log("Message received");
-
     socket.in(chatId).emit("message-received", newMessage);
   });
 
   socket.on("new-chat", (newChat) => {
     const chatUsers = newChat.users;
-    console.log("Chat users ", chatUsers);
 
     if (Array.isArray(chatUsers)) {
       for (let i = 0; i < chatUsers.length; i++) {
