@@ -16,6 +16,7 @@ chatRouter.delete(
   "/group-chat/remove-user/:chatId/:userId",
   ChatController.removeUserFromGroup
 );
-chatRouter.get("/:userId", ChatController.accessUserChat);
+chatRouter.patch("/group-chat/:chatId", ChatController.updateGroupDetails);
+chatRouter.get("/user/:userId", ChatController.accessUserChat);
 chatRouter.delete("/group-chat/:chatId", ChatController.leaveGroupChat);
 module.exports = chatRouter;

@@ -4,11 +4,14 @@ const Chat = require("../models/Chat");
 const ChatUsers = require("../models/ChatUsers");
 const { Op } = require("sequelize");
 const Message = require("../models/Message");
+const { getUTCDate } = require("../utils/helper");
 
 const getSelfChat = async (userId) => {
   const query = `
-    SELECT U.name as "userName", U.profile_url as "userProfile", 
-           C.id as "id", U.id as "userId" 
+    SELECT C.id AS "id", C.chat_type AS "chatType",
+           C.group_name AS "groupName", C.group_profile AS "groupProfile",
+           C.group_admin_id as "groupAdminId",C.is_group_chat as "isGroupChat",
+           C.created_at as "created_at",C.updated_at as "updatedAt"
     FROM chat_users CU 
     INNER JOIN chats C ON C.id = CU.chat_id
     INNER JOIN users U ON U.id = CU.user_id
@@ -32,8 +35,10 @@ const getChatByUserIds = async (userId1, userId2) => {
   }
 
   const query = `
-    SELECT U2.name as "userName", U2.profile_url as "userProfile",
-           C.id as "id", U2.id as "userId" 
+    SELECT C.id AS "id", C.chat_type AS "chatType",
+           C.group_name AS "groupName", C.group_profile AS "groupProfile",
+           C.group_admin_id as "groupAdminId",C.is_group_chat as "isGroupChat",
+           C.created_at as "created_at",C.updated_at as "updatedAt"
     FROM chat_users CU1 
     INNER JOIN chat_users CU2 ON CU1.chat_id = CU2.chat_id 
     INNER JOIN chats C ON C.id = CU1.chat_id
@@ -112,7 +117,7 @@ const getAllChatsOfUser = async (userId, searchTerm = "") => {
   const chatquery = `
     SELECT C.id AS "id", C.chat_type AS "chatType",
            C.group_name AS "groupName", C.group_profile AS "groupProfile",
-           C.group_admin_id as "groupAdminId",
+           C.group_admin_id as "groupAdminId",C.is_group_chat as "isGroupChat",
            C.created_at as "created_at",C.updated_at as "updatedAt"
     FROM CHAT_USERS CU
     INNER JOIN CHATS C ON C.id = CU.chat_id
@@ -213,11 +218,24 @@ const getAllChatsOfUser = async (userId, searchTerm = "") => {
   };
 };
 
+const updateChatById = async (id, body) => {
+  return await Chat.update(
+    { ...body, updatedAt: getUTCDate() },
+    {
+      where: {
+        id: id,
+      },
+      returning: true,
+    }
+  );
+};
+
 const ChatService = {
   getChatByUserIds,
   getSelfChat,
   createSelfChat,
   createChat,
   getAllChatsOfUser,
+  updateChatById,
 };
 module.exports = { ChatService };

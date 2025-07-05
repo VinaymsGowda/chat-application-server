@@ -14,12 +14,14 @@ const accessUserChat = async (req, res) => {
         message: "Chat not found",
       });
     } else {
-      const messages = await messageService.getMessagesByChatId(chat[0].id);
+      const latestMessage = await messageService.getLatestMessageOfChat(
+        chat[0].id
+      );
 
       res.status(200).json({
         message: "Chat found",
-        chat: chat,
-        messages: messages,
+        chat: chat[0],
+        latestMessage: latestMessage,
       });
     }
   } catch (error) {
@@ -242,6 +244,42 @@ const removeUserFromGroup = async (req, res) => {
   }
 };
 
+const updateGroupDetails = async (req, res) => {
+  try {
+    const body = req.body;
+    const chatId = req.params.chatId;
+
+    if (!chatId) {
+      return res.status(400).json({
+        message: "Either body chat name or params chat id is not provided",
+      });
+    }
+
+    const chat = await Chat.findByPk(chatId);
+    if (!chat) {
+      return res.status(404).json({
+        message: "Invalid chat id not found",
+      });
+    }
+
+    const data = await ChatService.updateChatById(chatId, body);
+    if (data[0] === 0) {
+      return res.status(400).json({
+        message: "No changes to update",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Chat updated successfully",
+      data: data[1],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
 const ChatController = {
   accessUserChat,
   getChats,
@@ -250,5 +288,6 @@ const ChatController = {
   getNewUsersListForGroupChat,
   addUsersToGroupChat,
   removeUserFromGroup,
+  updateGroupDetails,
 };
 module.exports = { ChatController };

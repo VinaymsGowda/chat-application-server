@@ -29,9 +29,20 @@ const getMessagesByChatId = async (chatId) => {
   return messages;
 };
 
+const getLatestMessageOfChat = async (chatId) => {
+  const latestMessage = await Message.findOne({
+    where: { chatId: chatId },
+    order: [["createdAt", "desc"]],
+    limit: 1,
+  });
+
+  return latestMessage;
+};
+
 const messageService = {
   createMessage,
   getMessagesByChatId,
+  getLatestMessageOfChat,
 };
 
 module.exports = { messageService };
