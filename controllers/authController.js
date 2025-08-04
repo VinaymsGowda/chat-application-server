@@ -1,15 +1,43 @@
+const { uploadFileToS3 } = require("../services/s3UploadHelper");
 const userService = require("../services/userService");
 
 const createUser = async (req, res) => {
   try {
-    const { name, email, authProviderId, profileURL } = req.body;
+    const data = req.body.data;
 
-    const response = await userService.createUser({
-      name,
-      email,
-      authProviderId,
-      profileURL,
-    });
+    if (!data) {
+      return res.status(400).json("Please provide vali data");
+    }
+
+    const body = JSON.parse(data);
+
+    const { name, email, authProviderId } = body;
+
+    if (!name && !email && !authProviderId) {
+      return res
+        .status(400)
+        .json("Name,email and auth provider id is required");
+    }
+
+    const newUser = {
+      name: name,
+      email: email,
+      authProviderId: authProviderId,
+    };
+
+    if (req.file) {
+      const result = await uploadFileToS3(
+        req.file.originalname,
+        req.file.buffer,
+        req.file.mimetype
+      );
+      if (!result) {
+        return res.status(400).json("Failed to upload image");
+      }
+      newUser.profileURL = `${process.env.AWS_CLOUD_FRONT_URL}/${result}`;
+    }
+
+    const response = await userService.createUser(newUser);
     res.status(201).json({
       message: "User created successfully",
       data: response,

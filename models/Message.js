@@ -31,10 +31,17 @@ const Message = sequelize.define(
     },
     content: {
       type: DataTypes.TEXT,
-      allowNull: false,
     },
     type: {
-      type: DataTypes.ENUM("text", "image", "audio", "video"),
+      type: DataTypes.ENUM(
+        "text",
+        "image",
+        "audio",
+        "video",
+        "pdf",
+        "word",
+        "other"
+      ),
       allowNull: false,
       defaultValue: "text",
     },
@@ -52,6 +59,14 @@ const Message = sequelize.define(
       field: "updated_at",
       allowNull: false,
       defaultValue: DataTypes.NOW,
+    },
+    imagePath: {
+      type: DataTypes.TEXT,
+      field: "image_path",
+    },
+    imageOriginalName: {
+      type: DataTypes.TEXT,
+      field: "image_original_name",
     },
   },
   {

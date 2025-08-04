@@ -25,6 +25,7 @@ const getMessagesByChatId = async (chatId) => {
   const messages = await Message.findAll({
     where: { chatId },
     raw: true,
+    order: [["createdAt", "asc"]],
   });
   return messages;
 };

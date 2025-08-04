@@ -2,6 +2,7 @@ const Chat = require("../models/Chat");
 const { ChatService } = require("../services/chatService");
 const { groupChatService } = require("../services/groupChatService");
 const { messageService } = require("../services/messageService");
+const { uploadFileToS3 } = require("../services/s3UploadHelper");
 
 const accessUserChat = async (req, res) => {
   try {
@@ -53,7 +54,13 @@ const getChats = async (req, res) => {
 
 const createGroupChat = async (req, res) => {
   try {
-    const userIds = req.body.userIds;
+    const reqBody = req.body.data;
+    if (!reqBody) {
+      return res.status(400).json("Please provide req body");
+    }
+
+    const body = JSON.parse(reqBody);
+    const userIds = body.userIds;
 
     if (!userIds || userIds.length < 2) {
       return res.status(400).json({
@@ -61,7 +68,7 @@ const createGroupChat = async (req, res) => {
       });
     }
 
-    const { groupName, groupProfile } = req.body;
+    const { groupName } = body;
 
     const groupAdmin = req.user.id;
 
@@ -74,10 +81,22 @@ const createGroupChat = async (req, res) => {
     const newGroupChat = {
       groupName: groupName,
       isGroupChat: true,
-      groupProfile: groupProfile,
       groupAdminId: groupAdmin,
       chatType: "group",
     };
+    if (req.file) {
+      const result = await uploadFileToS3(
+        req.file.originalname,
+        req.file.buffer,
+        req.file.mimetype
+      );
+      if (!result) {
+        return res.status(400).json("Failed to upload image");
+      }
+      console.log("Result ", result);
+
+      newGroupChat.groupProfile = result;
+    }
 
     const newGroup = await groupChatService.createGroupChat(
       newGroupChat,
@@ -246,7 +265,7 @@ const removeUserFromGroup = async (req, res) => {
 
 const updateGroupDetails = async (req, res) => {
   try {
-    const body = req.body;
+    const body = req.body.data;
     const chatId = req.params.chatId;
 
     if (!chatId) {
@@ -262,7 +281,35 @@ const updateGroupDetails = async (req, res) => {
       });
     }
 
-    const data = await ChatService.updateChatById(chatId, body);
+    if (!body && !req.file) {
+      return res.status(400).json({
+        message: "Please provide data to update, Empty payload",
+      });
+    }
+
+    let reqBody = {};
+    if (body) {
+      try {
+        reqBody = JSON.parse(body);
+      } catch (err) {
+        console.log("Failed to parse body");
+      }
+    }
+
+    if (req.file) {
+      const result = await uploadFileToS3(
+        req.file.originalname,
+        req.file.buffer,
+        req.file.mimetype
+      );
+      if (!result) {
+        return res.status(400).json("Failed to upload image");
+      }
+      reqBody.groupProfile = result;
+    }
+
+    const data = await ChatService.updateChatById(chatId, reqBody);
+
     if (data[0] === 0) {
       return res.status(400).json({
         message: "No changes to update",
