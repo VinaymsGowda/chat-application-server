@@ -1,4 +1,9 @@
-const { S3Client, PutObjectCommand, url } = require("@aws-sdk/client-s3");
+const {
+  S3Client,
+  PutObjectCommand,
+  url,
+  DeleteObjectCommand,
+} = require("@aws-sdk/client-s3");
 const { generateUniqueFileName } = require("../utils/helper");
 
 const region = process.env.AWS_REGION;
@@ -15,13 +20,13 @@ const s3Client = new S3Client({
   },
 });
 
-const uploadFileToS3 = async (fileName, fileBuffer, fileType) => {
+const uploadFileToS3 = async (fileName, fileBuffer, fileType, filePath) => {
   try {
     const newfileName = generateUniqueFileName(fileName);
 
     const command = new PutObjectCommand({
       Bucket: bucketName,
-      Key: newfileName,
+      Key: `${filePath}/${newfileName}`,
       Body: fileBuffer,
       ContentType: fileType,
       ContentDisposition: "attachment",
@@ -30,7 +35,7 @@ const uploadFileToS3 = async (fileName, fileBuffer, fileType) => {
     const uploadResult = await s3Client.send(command);
 
     if (uploadResult) {
-      return newfileName;
+      return `${filePath}/${newfileName}`;
     }
     return false;
   } catch (error) {
@@ -40,6 +45,20 @@ const uploadFileToS3 = async (fileName, fileBuffer, fileType) => {
   }
 };
 
+const deleteFileFromS3 = async (fileName) => {
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: fileName,
+    });
+
+    await s3Client.send(command);
+  } catch (error) {
+    console.log("Failed to delete file from s3", error);
+  }
+};
+
 module.exports = {
   uploadFileToS3,
+  deleteFileFromS3,
 };

@@ -1,9 +1,9 @@
 const Chat = require("../models/Chat");
+const ChatUsers = require("../models/ChatUsers");
 const { ChatService } = require("../services/chatService");
 const { groupChatService } = require("../services/groupChatService");
 const { messageService } = require("../services/messageService");
-const { uploadFileToS3 } = require("../services/s3UploadHelper");
-
+const { uploadFileToS3 } = require("../services/s3Helper");
 const accessUserChat = async (req, res) => {
   try {
     const { user } = req;
@@ -88,7 +88,8 @@ const createGroupChat = async (req, res) => {
       const result = await uploadFileToS3(
         req.file.originalname,
         req.file.buffer,
-        req.file.mimetype
+        req.file.mimetype,
+        "group-profile"
       );
       if (!result) {
         return res.status(400).json("Failed to upload image");
@@ -199,6 +200,12 @@ const addUsersToGroupChat = async (req, res) => {
     }
     const userIds = req.body;
 
+    if (!Array.isArray(userIds)) {
+      return res.status(400).json({
+        message: "Invalid Input data",
+      });
+    }
+
     if (Array.isArray(userIds) && userIds.length === 0) {
       return res.status(400).json({
         message: "No users provided to add",
@@ -300,7 +307,8 @@ const updateGroupDetails = async (req, res) => {
       const result = await uploadFileToS3(
         req.file.originalname,
         req.file.buffer,
-        req.file.mimetype
+        req.file.mimetype,
+        "group-profile"
       );
       if (!result) {
         return res.status(400).json("Failed to upload image");
@@ -327,6 +335,33 @@ const updateGroupDetails = async (req, res) => {
   }
 };
 
+const getChatInfo = async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+
+    if (!chatId) {
+      return res.status(400).json({
+        message: "Either body chat name or params chat id is not provided",
+      });
+    }
+
+    const { chat, users } = await ChatService.getChatById(chatId);
+
+    if (!chat) {
+      return res.status(404).json({
+        success: false,
+        message: "Chat not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Chat found successfully",
+      chat: chat,
+      users: users,
+    });
+  } catch (error) {}
+};
+
 const ChatController = {
   accessUserChat,
   getChats,
@@ -336,5 +371,6 @@ const ChatController = {
   addUsersToGroupChat,
   removeUserFromGroup,
   updateGroupDetails,
+  getChatInfo,
 };
 module.exports = { ChatController };

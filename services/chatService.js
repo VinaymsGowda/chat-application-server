@@ -5,6 +5,7 @@ const ChatUsers = require("../models/ChatUsers");
 const { Op } = require("sequelize");
 const Message = require("../models/Message");
 const { getUTCDate } = require("../utils/helper");
+const User = require("../models/User");
 
 const getSelfChat = async (userId) => {
   const query = `
@@ -230,6 +231,34 @@ const updateChatById = async (id, body) => {
   );
 };
 
+const getChatById = async (id) => {
+  const chat = await Chat.findOne({
+    where: {
+      id: id,
+    },
+    raw: true,
+  });
+
+  const users = await User.findAll({
+    attributes: ["id", "name", "email", "profileURL", "authProviderId"],
+    include: [
+      {
+        model: ChatUsers,
+        attributes: [],
+        as: "chatUsers",
+        where: {
+          chatId: id,
+        },
+      },
+    ],
+    raw: true,
+  });
+  return {
+    chat,
+    users,
+  };
+};
+
 const ChatService = {
   getChatByUserIds,
   getSelfChat,
@@ -237,5 +266,6 @@ const ChatService = {
   createChat,
   getAllChatsOfUser,
   updateChatById,
+  getChatById,
 };
 module.exports = { ChatService };

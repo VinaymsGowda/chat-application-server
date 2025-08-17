@@ -30,4 +30,5 @@ chatRouter.patch(
 );
 chatRouter.get("/user/:userId", ChatController.accessUserChat);
 chatRouter.delete("/group-chat/:chatId", ChatController.leaveGroupChat);
+chatRouter.get("/:chatId", ChatController.getChatInfo);
 module.exports = chatRouter;

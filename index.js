@@ -43,14 +43,18 @@ io.on("connection", (socket) => {
     socket.in(chatId).emit("message-received", newMessage);
   });
 
-  socket.on("new-chat", (newChat) => {
-    const chatUsers = newChat.users;
+  socket.on("user-removed-from-group", (removedUserId, chatId) => {
+    // Notify the removed user
+    socket.to(removedUserId).emit("removed-from-group", chatId);
+  });
 
+  socket.on("new-chat", (chatUsers) => {
     if (Array.isArray(chatUsers)) {
       for (let i = 0; i < chatUsers.length; i++) {
         const userRoomId = chatUsers[i].id;
+        console.log("user room ", userRoomId);
 
-        socket.in(userRoomId).emit("new-chat-received", newChat);
+        socket.in(userRoomId).emit("new-chat-received");
       }
     }
   });

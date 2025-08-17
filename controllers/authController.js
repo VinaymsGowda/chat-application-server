@@ -1,4 +1,5 @@
-const { uploadFileToS3 } = require("../services/s3UploadHelper");
+const { default: axios } = require("axios");
+const { uploadFileToS3 } = require("../services/s3Helper");
 const userService = require("../services/userService");
 
 const createUser = async (req, res) => {
@@ -29,12 +30,13 @@ const createUser = async (req, res) => {
       const result = await uploadFileToS3(
         req.file.originalname,
         req.file.buffer,
-        req.file.mimetype
+        req.file.mimetype,
+        "user-profile"
       );
       if (!result) {
         return res.status(400).json("Failed to upload image");
       }
-      newUser.profileURL = `${process.env.AWS_CLOUD_FRONT_URL}/${result}`;
+      newUser.profileURL = result;
     }
 
     const response = await userService.createUser(newUser);
@@ -59,18 +61,11 @@ const handleGoogleAuth = async (req, res) => {
     const user = await userService.getUserByAuthProviderId(authProviderId);
 
     if (user) {
-      await userService.updateUserById(user.id, {
-        name,
-        profileURL,
-      });
-
-      const updatedUser = await userService.getUserByAuthProviderId(
-        authProviderId
-      );
+      const user = await userService.getUserByAuthProviderId(authProviderId);
 
       res.status(200).json({
         message: "User already exists",
-        data: updatedUser,
+        data: user,
       });
     } else {
       // this is a new user registration,
@@ -79,14 +74,35 @@ const handleGoogleAuth = async (req, res) => {
         name,
         email,
         authProviderId,
-        profileURL,
       });
+      if (profileURL) {
+        const response = await axios.get(profileURL, {
+          responseType: "arraybuffer",
+        });
+        const mimeType = response.headers["content-type"];
+        const ext = mimeType.split("/")[1];
+
+        const s3Key = await uploadFileToS3(
+          `${newUser.id}.${ext}`,
+          Buffer.from(response.data),
+          mimeType,
+          "user-profile"
+        );
+
+        await userService.updateUserById(newUser.id, {
+          profileURL: s3Key,
+        });
+
+        newUser.profileURL = s3Key;
+      }
       res.status(201).json({
         message: "User created successfully",
         data: newUser,
       });
     }
   } catch (error) {
+    console.log("Error ", error);
+
     res.status(500).json({ message: error.message });
   }
 };
@@ -96,7 +112,7 @@ const getUserDetails = async (req, res) => {
     const authProviderId = req.params.authProviderId;
     const user = await userService.getUserByAuthProviderId(authProviderId);
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
     return res.status(200).json({
       message: "User authenticated successfully",

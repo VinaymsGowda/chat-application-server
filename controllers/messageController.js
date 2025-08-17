@@ -1,7 +1,7 @@
 const ChatUsers = require("../models/ChatUsers");
 const { ChatService } = require("../services/chatService");
 const { messageService } = require("../services/messageService");
-const { uploadFileToS3 } = require("../services/s3UploadHelper");
+const { uploadFileToS3 } = require("../services/s3Helper");
 const { generateUniqueFileName } = require("../utils/helper");
 
 const sendMessage = async (req, res) => {
@@ -52,7 +52,8 @@ const sendMessage = async (req, res) => {
       const result = await uploadFileToS3(
         imageOriginalName,
         req.file.buffer,
-        req.file.mimetype
+        req.file.mimetype,
+        "attachments"
       );
       if (!result) {
         return res.status(400).json({
@@ -87,9 +88,22 @@ const getMessagesByChatId = async (req, res) => {
       });
     }
     const messages = await messageService.getMessagesByChatId(chatId);
+    const { chat, users } = await ChatService.getChatById(chatId);
+
+    const chatInfo = {
+      ...chat,
+      users: users,
+    };
+
+    if (!chat) {
+      return res.status(404).json({
+        message: "Chat not found",
+      });
+    }
 
     res.status(200).json({
       message: "Chat found",
+      chat: chatInfo,
       messages: messages,
     });
   } catch (error) {

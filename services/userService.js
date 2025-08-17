@@ -30,6 +30,7 @@ const updateUserById = async (userId, body) => {
         id: userId,
       },
       raw: true,
+      returning: true,
     }
   );
   return updatedUser;
@@ -59,11 +60,23 @@ const getUsers = async (userId, query = "") => {
   return users;
 };
 
+const getUserById = async (id) => {
+  const user = await User.findOne({
+    where: {
+      id: id,
+    },
+    raw: true,
+  });
+
+  return user;
+};
+
 const userService = {
   createUser,
   getUserByAuthProviderId,
   updateUserById,
   getUsers,
+  getUserById,
 };
 
 module.exports = userService;
