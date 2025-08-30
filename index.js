@@ -48,14 +48,52 @@ io.on("connection", (socket) => {
     socket.to(removedUserId).emit("removed-from-group", chatId);
   });
 
+  // caller forward offer to callee
+  socket.on("initiate-call", (chat, type, offer, caller) => {
+    const chatUsers = chat.users;
+
+    if (Array.isArray(chatUsers)) {
+      for (let i = 0; i < chatUsers.length; i++) {
+        const userRoomId = chatUsers[i].id;
+        socket
+          .in(userRoomId)
+          .emit("incoming-call", type, { from: caller, offer: offer });
+      }
+    }
+  });
+
+  socket.on("send-answer", (data) => {
+    console.log("Sending call answer to caller");
+
+    socket.in(data.to).emit("call-answered", {
+      from: data.callee,
+      offer: data.offer,
+    });
+  });
+
+  socket.on("ice-candidate", (data) => {
+    if (data?.to && data?.candidate) {
+      socket.in(data?.to?.id).emit("found-ice-candidate", {
+        from: data.from,
+        candidate: data.candidate,
+        sdpMid: data.sdpMid,
+        sdpMLineIndex: data.sdpMLineIndex,
+      });
+    }
+  });
+
   socket.on("new-chat", (chatUsers) => {
     if (Array.isArray(chatUsers)) {
       for (let i = 0; i < chatUsers.length; i++) {
         const userRoomId = chatUsers[i].id;
-        console.log("user room ", userRoomId);
-
         socket.in(userRoomId).emit("new-chat-received");
       }
+    }
+  });
+
+  socket.on("user-busy-event", (data) => {
+    if (data.to) {
+      socket.in(data.to.id).emit("user-busy");
     }
   });
 

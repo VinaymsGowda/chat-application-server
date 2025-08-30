@@ -6,7 +6,8 @@ const getUsers = async (req, res) => {
   try {
     const query = req.query.query || "";
     const userId = req.user.id;
-    const users = await userService.getUsers(userId, query);
+    const isGroup = req.query.isGroup === "true" ? true : false;
+    const users = await userService.getUsers(userId, query, isGroup);
 
     if (users.length === 0) {
       return res.status(404).json({
