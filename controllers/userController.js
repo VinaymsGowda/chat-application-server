@@ -104,7 +104,6 @@ const getUserInfo = async (req, res) => {
       });
     }
     const user = await userService.getUserById(id);
-    console.log("user", user);
 
     if (!user) {
       return res.status(404).json({

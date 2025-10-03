@@ -28,8 +28,6 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log("a user connected", socket.id);
-
   // personal room for sending notifications pushing new chats
   socket.on("user-room", (userId) => {
     socket.join(userId);
@@ -63,8 +61,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("send-answer", (data) => {
-    console.log("Sending call answer to caller");
-
     socket.in(data.to).emit("call-answered", {
       from: data.callee,
       offer: data.offer,
@@ -97,8 +93,44 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Handle media control changes (camera, microphone, screen share)
+  socket.on("media-control-change", (data) => {
+    if (data.to) {
+      socket.in(data.to.id || data.to).emit("media-control-change", {
+        controlType: data.controlType,
+        enabled: data.enabled,
+        from: socket.id,
+      });
+    }
+  });
+
+  // Handle call termination
+  socket.on("call-ended", (data) => {
+    if (data.to) {
+      socket.in(data.to.id || data.to).emit("call-ended", {
+        from: socket.id,
+        reason: "ended_by_participant",
+      });
+    }
+  });
+
+  // Handle call timeout - forward to callee
+  socket.on("call-timeout", (data) => {
+    if (data.to) {
+      socket.in(data.to.id).emit("call-timeout", {
+        from: socket.id,
+        reason: "no_answer",
+      });
+    }
+  });
+
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    // Notify all rooms that this user was in about the disconnection
+    // This will handle cases where user closes browser/app during a call
+    socket.broadcast.emit("participant-disconnected", {
+      userId: socket.id,
+      reason: "disconnected",
+    });
   });
 });
 

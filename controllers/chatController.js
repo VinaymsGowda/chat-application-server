@@ -94,7 +94,6 @@ const createGroupChat = async (req, res) => {
       if (!result) {
         return res.status(400).json("Failed to upload image");
       }
-      console.log("Result ", result);
 
       newGroupChat.groupProfile = result;
     }
