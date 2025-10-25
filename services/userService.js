@@ -36,12 +36,14 @@ const updateUserById = async (userId, body) => {
   return updatedUser;
 };
 
-const getUsers = async (userId, query = "") => {
+const getUsers = async (userId, query = "", isGroup = false) => {
   const users = await User.findAll({
     where: {
-      id: {
-        [Op.ne]: userId,
-      },
+      ...(isGroup && {
+        id: {
+          [Op.ne]: userId,
+        },
+      }),
       [Op.or]: [
         {
           name: {
