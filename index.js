@@ -67,6 +67,34 @@ io.on("connection", (socket) => {
     });
   });
 
+  // Handle renegotiation offer (when upgrading audio to video)
+  socket.on("renegotiation-offer", (data) => {
+    if (data.to) {
+      const targetId = data.to.id || data.to;
+
+      socket.in(targetId).emit("renegotiation-offer", {
+        from: socket.id,
+        offer: data.offer,
+      });
+    } else {
+      console.error("renegotiation-offer missing 'to' field:", data);
+    }
+  });
+
+  // Handle renegotiation answer (response to renegotiation offer)
+  socket.on("renegotiation-answer", (data) => {
+    if (data.to) {
+      const targetId = data.to.id || data.to;
+
+      socket.in(targetId).emit("renegotiation-answer", {
+        from: socket.id,
+        answer: data.answer,
+      });
+    } else {
+      console.error("renegotiation-answer missing 'to' field:", data);
+    }
+  });
+
   socket.on("ice-candidate", (data) => {
     if (data?.to && data?.candidate) {
       socket.in(data?.to?.id).emit("found-ice-candidate", {
