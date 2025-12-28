@@ -93,7 +93,3 @@ The chat-app-server provides the backend for a chat application, enabling users 
 - Enjoy a scalable, secure, and modern chat experience
 
 The server exposes RESTful API endpoints for user, chat, and message management, and uses WebSockets (Socket.IO) for real-time communication.
-
-## License
-
-This project is licensed under the ISC License.
