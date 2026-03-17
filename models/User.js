@@ -31,6 +31,12 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       field: "profile_url",
     },
+    type: {
+      type: DataTypes.ENUM("USER", "AI"),
+      defaultValue: "USER",
+      allowNull: false,
+      field: "type",
+    },
     createdAt: {
       type: "TIMESTAMP WITHOUT TIME ZONE",
       field: "created_at",
@@ -48,7 +54,7 @@ const User = sequelize.define(
     tableName: "users",
     modelName: "User",
     timestamps: false,
-  }
+  },
 );
 
 module.exports = User;
