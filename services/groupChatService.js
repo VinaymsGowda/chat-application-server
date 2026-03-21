@@ -89,6 +89,11 @@ const getUsersListToAddInGroupChat = async (chatId) => {
   );
 
   const users = await User.findAll({
+    where: {
+      type: {
+        [Op.ne]: "AI",
+      },
+    },
     order: [["name", "asc"]], // Sort by name in ascending order
     raw: true,
   });

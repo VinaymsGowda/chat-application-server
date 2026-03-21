@@ -4,21 +4,8 @@ const userService = require("../services/userService");
 
 const createUser = async (req, res) => {
   try {
-    const data = req.body.data;
-
-    if (!data) {
-      return res.status(400).json("Please provide vali data");
-    }
-
-    const body = JSON.parse(data);
-
-    const { name, email, authProviderId } = body;
-
-    if (!name && !email && !authProviderId) {
-      return res
-        .status(400)
-        .json("Name,email and auth provider id is required");
-    }
+    // validateBody middleware parses multipart JSON into req.validatedData
+    const { name, email, authProviderId } = req.validatedData;
 
     const newUser = {
       name: name,
@@ -51,13 +38,8 @@ const createUser = async (req, res) => {
 
 const handleGoogleAuth = async (req, res) => {
   try {
-    const { authProviderId } = req.body;
-    const { name, email, profileURL } = req.body;
-    if (!authProviderId || !name || !email) {
-      return res.status(400).json({
-        message: "Missing required fields: authProviderId, name, or email",
-      });
-    }
+    const { authProviderId, name, email, profileURL } = req.body;
+
     const user = await userService.getUserByAuthProviderId(authProviderId);
 
     if (user) {
@@ -110,6 +92,12 @@ const handleGoogleAuth = async (req, res) => {
 const getUserDetails = async (req, res) => {
   try {
     const authProviderId = req.params.authProviderId;
+
+    // IDOR Protection: Ensure token user matches requested user
+    if (req.user.authProviderId !== authProviderId) {
+      return res.status(403).json({ message: "Forbidden: You cannot access other users' details" });
+    }
+
     const user = await userService.getUserByAuthProviderId(authProviderId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });

@@ -54,29 +54,8 @@ const getChats = async (req, res) => {
 
 const createGroupChat = async (req, res) => {
   try {
-    const reqBody = req.body.data;
-    if (!reqBody) {
-      return res.status(400).json("Please provide req body");
-    }
-
-    const body = JSON.parse(reqBody);
-    const userIds = body.userIds;
-
-    if (!userIds || userIds.length < 2) {
-      return res.status(400).json({
-        message: "Atlease two users are needed to create a group chat",
-      });
-    }
-
-    const { groupName } = body;
-
+    const { groupName, userIds } = req.validatedData;
     const groupAdmin = req.user.id;
-
-    if (!groupName) {
-      return res.status(400).json({
-        message: "Please provide name of the group",
-      });
-    }
 
     const newGroupChat = {
       groupName: groupName,
@@ -156,6 +135,13 @@ const getNewUsersListForGroupChat = async (req, res) => {
         message: "Params Chat id is required",
       });
     }
+    
+    // IDOR Check: user must be a member of the chat to get user list
+    const { users } = await ChatService.getChatById(chatId);
+    if (!users || !users.some(u => u.id === req.user.id)) {
+      return res.status(403).json({ message: "Forbidden: Not a member of this chat" });
+    }
+
     const data = await groupChatService.getUsersListToAddInGroupChat(chatId);
 
     if (data.length === 0) {
@@ -197,19 +183,7 @@ const addUsersToGroupChat = async (req, res) => {
         message: "Only group admin can add members",
       });
     }
-    const userIds = req.body;
-
-    if (!Array.isArray(userIds)) {
-      return res.status(400).json({
-        message: "Invalid Input data",
-      });
-    }
-
-    if (Array.isArray(userIds) && userIds.length === 0) {
-      return res.status(400).json({
-        message: "No users provided to add",
-      });
-    }
+    const userIds = req.validatedData;
 
     const newGroupUsers = await groupChatService.addUsersToGroupChat(
       chatId,
@@ -287,20 +261,14 @@ const updateGroupDetails = async (req, res) => {
       });
     }
 
-    if (!body && !req.file) {
-      return res.status(400).json({
-        message: "Please provide data to update, Empty payload",
+    // IDOR Check: Only group admin can update details
+    if (chat.groupAdminId !== req.user.id) {
+      return res.status(403).json({
+        message: "Only group admin can update group details",
       });
     }
 
-    let reqBody = {};
-    if (body) {
-      try {
-        reqBody = JSON.parse(body);
-      } catch (err) {
-        console.log("Failed to parse body");
-      }
-    }
+    const reqBody = req.validatedData || {};
 
     if (req.file) {
       const result = await uploadFileToS3(
@@ -350,6 +318,14 @@ const getChatInfo = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Chat not found",
+      });
+    }
+
+    // IDOR Check: Ensure user is a participant of this chat
+    if (!users.some(u => u.id === req.user.id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: You are not a participant in this chat",
       });
     }
     return res.status(200).json({

@@ -9,20 +9,8 @@ const { getIo } = require("../utils/socket");
 const sendMessage = async (req, res) => {
   try {
     const senderId = req.user.id;
-    let data = {};
-    try {
-      data = JSON.parse(req.body.data);
-    } catch (error) {
-      console.log("Error parsing data", error);
-
-      return res.status(400).json({
-        message: "Invalid JSON in data field",
-      });
-    }
-
-    const { content, caption, receiverId, type } = data;
-
-    let chatId = data.chatId;
+    const { content, caption, receiverId, type, chatId: parsedChatId } = req.validatedData;
+    let chatId = parsedChatId;
     let chatDetails;
     if (!chatId) {
       if (!receiverId) {
@@ -193,6 +181,22 @@ const getMessagesByChatId = async (req, res) => {
         message: "Chat id parameter is required",
       });
     }
+
+    // IDOR Check: Ensure user is a member of the chat to read its messages
+    const isMember = await ChatUsers.findOne({
+      where: {
+        chatId: chatId,
+        userId: req.user.id,
+      },
+      raw: true,
+    });
+
+    if (!isMember) {
+      return res.status(403).json({
+        message: "Forbidden: You are not a member of this chat",
+      });
+    }
+
     const messages = await messageService.getMessagesByChatId(chatId);
     const { chat, users } = await ChatService.getChatById(chatId);
 
