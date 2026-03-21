@@ -82,7 +82,7 @@ const createSelfChat = async (userId) => {
   }
 };
 
-const createChat = async (userId1, userId2) => {
+const createChat = async (userId1, userId2,receiverDetails) => {
   const existingChat = await getChatByUserIds(userId1, userId2);
   if (existingChat.length > 0) {
     return existingChat[0];
@@ -92,7 +92,7 @@ const createChat = async (userId1, userId2) => {
   }
   const chat = await Chat.create(
     {
-      chatType: "one_to_one",
+      chatType: receiverDetails.type==="AI"?"AI":"one_to_one",
       isGroupChat: false,
     },
     {

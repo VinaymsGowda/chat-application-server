@@ -2,7 +2,6 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const { createServer } = require("node:http");
-const { Server } = require("socket.io");
 
 dotenv.config();
 
@@ -13,12 +12,14 @@ const chatRouter = require("./routes/chatRoutes");
 const messageRouter = require("./routes/messageRoutes");
 const sequelize = require("./config/database");
 const { verifyToken } = require("./middleware/auth.middleware");
+const socketSingleton = require("./utils/socket");
+
 const app = express();
 const server = createServer(app);
 
 const CLIENT_URL = process.env.CLIENT_URL;
 
-const io = new Server(server, {
+const io = socketSingleton.init(server, {
   transports: ["polling", "websocket"],
   cors: {
     origin: CLIENT_URL,
@@ -39,6 +40,19 @@ io.on("connection", (socket) => {
 
   socket.on("new-message", (chatId, newMessage) => {
     socket.in(chatId).emit("message-received", newMessage);
+  });
+
+  // Generalized typing indicators — used by both human users and the AI backend
+  socket.on("typing", (data) => {
+    if (data?.chatId) {
+      socket.to(data.chatId).emit("typing", data);
+    }
+  });
+
+  socket.on("stop-typing", (data) => {
+    if (data?.chatId) {
+      socket.to(data.chatId).emit("stop-typing", data);
+    }
   });
 
   socket.on("user-removed-from-group", (removedUserId, chatId) => {
@@ -169,7 +183,7 @@ app.use(
     origin: CLIENT_URL,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
-  })
+  }),
 );
 
 const PORT = process.env.PORT || 3000;
@@ -186,3 +200,5 @@ app.use("/api/message", messageRouter);
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+module.exports = { app, io };

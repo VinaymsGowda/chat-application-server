@@ -36,18 +36,21 @@ const updateUser = async (req, res) => {
         message: "Params id is required",
       });
     }
-    const body = req.body.data;
 
     const user = req.user;
 
-    let reqBody = {};
-    if (body) {
-      try {
-        reqBody = JSON.parse(body);
-      } catch (err) {
-        console.log("Failed to parse body");
-      }
+    // IDOR check: Users can only update their own profiles
+    if (id !== user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: You cannot update another user's profile",
+      });
     }
+
+    // validateBody middleware gives us cleaned generic string fields (e.g. name)
+    // and inherently strips dangerous fields like "profileURL" thanks to userUpdateSchema
+    const reqBody = { ...req.validatedData };
+
     if (req.file) {
       const result = await uploadFileToS3(
         req.file.originalname,
@@ -68,6 +71,7 @@ const updateUser = async (req, res) => {
       });
     }
 
+    // Deletion is now safe because reqBody.profileURL ONLY exists if req.file was uploaded
     if (reqBody.profileURL) {
       const userDetails = await userService.getUserByAuthProviderId(
         user.authProviderId

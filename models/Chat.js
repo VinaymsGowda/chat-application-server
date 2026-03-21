@@ -46,17 +46,22 @@ const Chat = sequelize.define(
       defaultValue: DataTypes.NOW,
     },
     chatType: {
-      type: DataTypes.ENUM("one_to_one", "group", "self"),
+      type: DataTypes.ENUM("one_to_one", "group", "self", "AI"),
       defaultValue: "one_to_one",
       field: "chat_type",
       allowNull: false,
+    },
+    pinnedAt: {
+      type: "TIMESTAMP WITHOUT TIME ZONE",
+      field: "pinned_at",
+      allowNull: true,
     },
   },
   {
     tableName: "chats",
     modelName: "Chat",
     timestamps: false,
-  }
+  },
 );
 
 User.hasMany(Chat, {

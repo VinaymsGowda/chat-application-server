@@ -44,6 +44,9 @@ const getUsers = async (userId, query = "", isGroup = false) => {
           [Op.ne]: userId,
         },
       }),
+      type: {
+        [Op.ne]: "AI",
+      },
       [Op.or]: [
         {
           name: {

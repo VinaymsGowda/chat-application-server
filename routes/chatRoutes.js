@@ -3,12 +3,15 @@ const { ChatController } = require("../controllers/chatController");
 const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+const { validateBody } = require("../middleware/validate");
+const { createGroupChatSchema, updateGroupChatSchema, addUsersToGroupSchema } = require("../validators/schemas");
 const chatRouter = express.Router();
 
 chatRouter.get("/", ChatController.getChats);
 chatRouter.post(
   "/group-chat",
   upload.single("groupProfile"),
+  validateBody(createGroupChatSchema),
   ChatController.createGroupChat
 );
 chatRouter.get(
@@ -17,6 +20,7 @@ chatRouter.get(
 );
 chatRouter.post(
   "/group-chat/add-users/:chatId",
+  validateBody(addUsersToGroupSchema),
   ChatController.addUsersToGroupChat
 );
 chatRouter.delete(
@@ -26,6 +30,7 @@ chatRouter.delete(
 chatRouter.patch(
   "/group-chat/:chatId",
   upload.single("groupProfile"),
+  validateBody(updateGroupChatSchema),
   ChatController.updateGroupDetails
 );
 chatRouter.get("/user/:userId", ChatController.accessUserChat);
